@@ -51,6 +51,13 @@ Test-Suite tests
   type:          exitcode-stdio-1.0
   main-is:       Spec.hs
   other-modules: TestData
+               , BuilderSpec
+               , PrimitivesSpec
+               , PrinterSpec
+               , PSTypesSpec
+               , SumTypeSpec
+               , TupleSpec
+               , TypeInfoSpec
                , RoundTripArgonautAesonGeneric.Spec
                , RoundTripArgonautAesonGeneric.Types
                , RoundTripJsonHelpers.Spec

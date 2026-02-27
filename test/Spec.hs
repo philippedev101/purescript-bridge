@@ -28,9 +28,16 @@ import           Language.PureScript.Bridge (CustomInstance (CustomInstance),
                                              sumTypeToModule)
 import           Language.PureScript.Bridge.TypeParameters (A, B, C, M1)
 import           NeatInterpolation (trimming, untrimming)
+import qualified BuilderSpec
+import qualified PrimitivesSpec
+import qualified PrinterSpec
+import qualified PSTypesSpec
 import qualified RoundTripArgonautAesonGeneric.Spec (roundtripSpec)
 import qualified RoundTripJsonHelpers.Spec (roundtripSpec)
+import qualified SumTypeSpec
 import           Test.Hspec (Spec, describe, hspec, it)
+import qualified TupleSpec
+import qualified TypeInfoSpec
 import           Test.Hspec.Expectations.Pretty (Expectation, shouldBe)
 import           TestData (Bar, Foo, Func, Simple, SingleProduct, SingleRecord,
                            SingleValueConstr, SomeNewtype, WeekInMonth,
@@ -47,7 +54,15 @@ import           Text.PrettyPrint.Leijen.Text (Doc, cat, linebreak, punctuate,
 -- Spago project will fail to build because of module name duplication.
 main :: IO ()
 main =
-  hspec $ allTests
+  hspec $ do
+    allTests
+    describe "TypeInfo" TypeInfoSpec.spec
+    describe "Tuple" TupleSpec.spec
+    describe "Builder" BuilderSpec.spec
+    describe "Primitives" PrimitivesSpec.spec
+    describe "SumType" SumTypeSpec.spec
+    describe "Printer" PrinterSpec.spec
+    describe "PSTypes" PSTypesSpec.spec
   *> RoundTripArgonautAesonGeneric.Spec.roundtripSpec
   *> RoundTripJsonHelpers.Spec.roundtripSpec
 
