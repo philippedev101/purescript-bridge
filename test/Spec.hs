@@ -22,8 +22,10 @@ import           Language.PureScript.Bridge (CustomInstance (CustomInstance),
                                              TypeInfo (TypeInfo, _typeModule, _typeName, _typePackage, _typeParameters),
                                              bridgeSumType, buildBridge,
                                              defaultBridge, equal, equal1,
-                                             functor, genericShow, mkSumType,
-                                             mkTypeInfo, moduleToText, order,
+                                             foldable, functor, genericShow,
+                                             mkSumType, traversable,
+                                             mkTypeInfo, moduleToText,
+                                             order,
                                              renderText, sumTypeToDocs,
                                              sumTypeToModule)
 import           Language.PureScript.Bridge.TypeParameters (A, B, C, M1)
@@ -38,7 +40,7 @@ import qualified SumTypeSpec
 import           Test.Hspec (Spec, describe, hspec, it)
 import qualified TupleSpec
 import qualified TypeInfoSpec
-import           Test.Hspec.Expectations.Pretty (Expectation, shouldBe)
+import           Test.Hspec.Expectations.Pretty (Expectation, shouldBe, shouldSatisfy)
 import           TestData (Bar, Foo, Func, Simple, SingleProduct, SingleRecord,
                            SingleValueConstr, SomeNewtype, WeekInMonth,
                            weekInMonth)
@@ -196,6 +198,35 @@ allTests = do
                         derive instance Generic (Func a) _
                         |]
              in doc `shouldRender` txt
+        it "tests generation of Functor, Foldable, and Traversable instances" $
+            let sumType =
+                    bridgeSumType
+                        (buildBridge defaultBridge)
+                        (functor . foldable . traversable $ mkSumType @(Func A))
+                doc = vsep $ sumTypeToDocs sumType
+                txt = [trimming|
+                        data Func a = Func Int a
+
+                        derive instance Functor Func
+
+                        derive instance Foldable Func
+
+                        derive instance Traversable Func
+
+                        derive instance Generic (Func a) _
+                        |]
+             in doc `shouldRender` txt
+        it "tests module generation with Foldable and Traversable imports" $
+            let sumType =
+                    bridgeSumType
+                        (buildBridge defaultBridge)
+                        (functor . foldable . traversable $ mkSumType @(Func A))
+                modules :: Modules
+                modules = sumTypeToModule Nothing sumType
+                m = head . map moduleToText . Map.elems $ modules
+             in do
+                m `shouldSatisfy` T.isInfixOf "import Data.Foldable (class Foldable)"
+                m `shouldSatisfy` T.isInfixOf "import Data.Traversable (class Traversable)"
         it "tests the generation of a whole (dummy) module" $
             let advanced' :: SumType 'PureScript
                 advanced' =

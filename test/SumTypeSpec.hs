@@ -18,7 +18,8 @@ import           Language.PureScript.Bridge.SumType (DataConstructor (..),
                                                      SumType (..),
                                                      constructorToTypes,
                                                      equal, equal1,
-                                                     functor, genericShow,
+                                                     foldable, functor,
+                                                     genericShow, traversable,
                                                      getUsedTypes,
                                                      importsFromList,
                                                      instanceToImportLines,
@@ -124,6 +125,14 @@ spec = do
             let SumType _ _ is = functor $ mkSumType @Foo
             is `shouldSatisfy` elem Functor
 
+        it "foldable adds Foldable instance" $ do
+            let SumType _ _ is = foldable $ mkSumType @Foo
+            is `shouldSatisfy` elem Foldable
+
+        it "traversable adds Traversable instance" $ do
+            let SumType _ _ is = traversable $ mkSumType @Foo
+            is `shouldSatisfy` elem Traversable
+
         it "lenses adds Lenses instance" $ do
             let SumType _ _ is = lenses $ mkSumType @Foo
             is `shouldSatisfy` elem Lenses
@@ -197,6 +206,14 @@ spec = do
 
         it "Functor produces empty imports" $
             instanceToImportLines Functor `shouldBe` Map.empty
+
+        it "Foldable imports Data.Foldable" $ do
+            let imports = instanceToImportLines Foldable
+            imports `shouldSatisfy` Map.member "Data.Foldable"
+
+        it "Traversable imports Data.Traversable" $ do
+            let imports = instanceToImportLines Traversable
+            imports `shouldSatisfy` Map.member "Data.Traversable"
 
         it "Lenses imports Data.Lens" $ do
             let imports = instanceToImportLines Lenses

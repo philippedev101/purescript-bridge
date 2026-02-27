@@ -149,8 +149,10 @@ import           Language.PureScript.Bridge.SumType as Bridge (CustomInstance (.
                                                                customHead,
                                                                customImplementation,
                                                                equal, equal1,
+                                                               foldable,
                                                                functor,
                                                                genericShow,
+                                                               traversable,
                                                                getUsedTypes,
                                                                importsFromList,
                                                                instanceToImportLines,
@@ -298,6 +300,8 @@ bridgeSumType br (SumType t cs is) =
     bridgeInstance (ForeignObject x y) = ForeignObject x y
     bridgeInstance GenericShow = GenericShow
     bridgeInstance Functor = Functor
+    bridgeInstance Foldable = Foldable
+    bridgeInstance Traversable = Traversable
     bridgeInstance Eq = Eq
     bridgeInstance Eq1 = Eq1
     bridgeInstance Ord = Ord

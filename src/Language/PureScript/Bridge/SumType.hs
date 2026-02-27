@@ -22,6 +22,8 @@ module Language.PureScript.Bridge.SumType
     , jsonHelpers
     , genericShow
     , functor
+    , foldable
+    , traversable
     , DataConstructor (..)
     , GDataConstructor
     , RecordEntry (..)
@@ -157,6 +159,8 @@ data Instance (lang :: Language)
   }
   | Newtype
   | Functor
+  | Foldable
+  | Traversable
   | Eq
   | Eq1
   | Ord
@@ -222,6 +226,18 @@ your responsibility to ensure your type is a functor.
 -}
 functor :: SumType t -> SumType t
 functor (SumType ti dc is) = SumType ti dc . nub $ Functor : is
+
+{- | Ensure that a foldable instance is generated for your type. It is
+your responsibility to ensure your type is foldable.
+-}
+foldable :: SumType t -> SumType t
+foldable (SumType ti dc is) = SumType ti dc . nub $ Foldable : is
+
+{- | Ensure that a traversable instance is generated for your type. It is
+your responsibility to ensure your type is traversable.
+-}
+traversable :: SumType t -> SumType t
+traversable (SumType ti dc is) = SumType ti dc . nub $ Traversable : is
 
 -- | Ensure that an `Eq` instance is generated for your type.
 equal :: SumType t -> SumType t
@@ -355,6 +371,10 @@ instanceToTypes Newtype =
     pure . constraintToType $ TypeInfo "purescript-newtype" "Data.Newtype" "Newtype" []
 instanceToTypes Functor =
     pure . constraintToType $ TypeInfo "purescript-prelude" "Prelude" "Functor" []
+instanceToTypes Foldable =
+    pure . constraintToType $ TypeInfo "purescript-foldable-traversable" "Data.Foldable" "Foldable" []
+instanceToTypes Traversable =
+    pure . constraintToType $ TypeInfo "purescript-foldable-traversable" "Data.Traversable" "Traversable" []
 instanceToTypes Eq =
     pure . constraintToType $ TypeInfo "purescript-prelude" "Prelude" "Eq" []
 instanceToTypes Eq1 =
@@ -482,6 +502,10 @@ instanceToImportLines Newtype =
         , ImportLine "Data.Newtype" Nothing $ Set.fromList ["class Newtype"]
         ]
 instanceToImportLines Functor = mempty
+instanceToImportLines Foldable =
+    importsFromList [ImportLine "Data.Foldable" Nothing $ Set.singleton "class Foldable"]
+instanceToImportLines Traversable =
+    importsFromList [ImportLine "Data.Traversable" Nothing $ Set.singleton "class Traversable"]
 instanceToImportLines Eq = mempty
 instanceToImportLines Eq1 = mempty
 instanceToImportLines Ord = mempty

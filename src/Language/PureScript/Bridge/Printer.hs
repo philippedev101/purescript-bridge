@@ -363,6 +363,8 @@ instances st@(SumType t dcs is) = nub $ go <$> is
                 ]
     go GenericShow = mkInstance (mkType "Show" [t]) (showConstraints usedVariables) ["show a = genericShow a"]
     go Functor = mkDerivedInstance (mkType "Functor" [toKind1 t]) (const [])
+    go Foldable = mkDerivedInstance (mkType "Foldable" [toKind1 t]) (const [])
+    go Traversable = mkDerivedInstance (mkType "Traversable" [toKind1 t]) (const [])
     go Eq = mkDerivedInstance (mkType "Eq" [t]) eqConstraints
     go Eq1 = mkDerivedInstance (mkType "Eq1" [toKind1 t]) (const [])
     go Ord = mkDerivedInstance (mkType "Ord" [t]) ordConstraints
