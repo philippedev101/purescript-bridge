@@ -8,7 +8,6 @@
 module Language.PureScript.Bridge.Printer where
 
 import           Data.Char (isLower)
-import           Debug.Trace
 
 import           Control.Arrow ((&&&))
 import           Control.Lens (to, (%~), (<>~), (^.))
@@ -494,9 +493,6 @@ typeToEncode (TypeInfo "purescript-either" "Data.Either" "Either" [l, r]) =
 typeToEncode (TypeInfo "purescript-tuples" "Data.Tuple" "Tuple" ts) =
     parens $
         "E.tuple" <+> parens (hsep $ punctuate " >/\\<" $ typeToEncode <$> flattenTuple ts)
-typeToEncode (TypeInfo "purescript-tuples" "Data.Tuple" "Tuple" ts) =
-    parens $
-        "E.tuple" <+> parens (hsep $ punctuate " >/\\<" $ typeToEncode <$> flattenTuple ts)
 typeToEncode (TypeInfo "purescript-ordered-collections" "Data.Map" "Map" [k, v]) =
     parens $
         "E.dictionary" <+> typeToEncode k <+> typeToEncode v
@@ -770,7 +766,7 @@ mkType :: Text -> [PSType] -> PSType
 mkType = TypeInfo "" ""
 
 typeParams :: PSType -> [PSType]
-typeParams = filter (isLower . T.head . _typeName) . flattenTypeInfo
+typeParams = filter (maybe False (isLower . fst) . T.uncons . _typeName) . flattenTypeInfo
 
 encloseHsep :: Doc -> Doc -> Doc -> [Doc] -> Doc
 encloseHsep left right sp ds =

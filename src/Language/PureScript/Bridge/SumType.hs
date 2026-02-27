@@ -467,7 +467,11 @@ instanceToImportLines Lenses =
         [ ImportLine "Data.Lens" Nothing
           $ Set.fromList [ "Iso'", "Lens'", "Prism'", "iso", "lens", "prism'" ]
         ]
-instanceToImportLines Prisms = instanceToImportLines Prisms
+instanceToImportLines Prisms =
+    importsFromList
+        [ ImportLine "Data.Lens" Nothing
+          $ Set.fromList [ "Prism'", "prism'" ]
+        ]
 instanceToImportLines (Custom _) = mempty
 instanceToImportLines Generic = mempty
 instanceToImportLines Newtype =
