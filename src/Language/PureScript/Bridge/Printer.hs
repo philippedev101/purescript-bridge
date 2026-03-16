@@ -250,6 +250,15 @@ getVariableFromTypeInfo ti =
         Nothing     -> Nothing
         Just (f, _) -> if isLower f then Just x else Nothing
 
+-- | Recursively collect all type variables from a TypeInfo, including those
+-- nested inside type constructors (e.g., the @a@ in @NonEmptyArray a@).
+collectVariables :: TypeInfo 'PureScript -> [Text]
+collectVariables ti =
+  let self = case T.uncons (_typeName ti) of
+        Just (f, _) | isLower f -> [_typeName ti]
+        _                       -> []
+  in self <> concatMap collectVariables (_typeParameters ti)
+
 instance Eq Doc where
   (==) a b = (show a) == (show b)
 
@@ -261,8 +270,8 @@ instances st@(SumType t dcs is) = nub $ go <$> is
     getVariablesFromDataConstructor :: DataConstructor 'PureScript -> [Text]
     getVariablesFromDataConstructor dc = case _sigValues dc of
       Nullary   -> []
-      Normal ne -> catMaybes $ NE.toList $ NE.map getVariableFromTypeInfo ne
-      Record re -> catMaybes $ NE.toList $ NE.map (getVariableFromTypeInfo . _recValue) re
+      Normal ne -> concatMap collectVariables $ NE.toList ne
+      Record re -> concatMap (collectVariables . _recValue) $ NE.toList re
 
     usedVariables :: [Text]
     usedVariables = concatMap getVariablesFromDataConstructor dcs

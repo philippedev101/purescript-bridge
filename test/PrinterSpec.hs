@@ -15,7 +15,8 @@ import           Language.PureScript.Bridge.Printer (Module (PSModule, psModuleN
                                                      constructorPattern,
                                                      constructor,
                                                      flattenTuple, hasUnderscore,
-                                                     isEnum, mkPackageName,
+                                                     instances, isEnum,
+                                                     mkPackageName,
                                                      renderText, sumTypeToModule,
                                                      sumTypesToModules, typeParams,
                                                      typeToImportLines,
@@ -26,6 +27,7 @@ import           Language.PureScript.Bridge.PSTypes (psInt, psString, psUnit)
 import           Language.PureScript.Bridge.SumType (DataConstructor (..),
                                                      DataConstructorArgs (..),
                                                      ImportLine (..),
+                                                     Instance (..),
                                                      RecordEntry (..),
                                                      SumType (..),
                                                      importsFromList)
@@ -208,6 +210,88 @@ spec = do
         it "Record produces record expression" $ do
             let args = Record (NE.singleton $ RecordEntry "x" psInt) :: DataConstructorArgs 'PureScript
             renderText (constructor args) `shouldSatisfy` T.isInfixOf "x"
+
+    describe "instances" $ do
+        it "GenericShow adds Show constraint for type variable nested in constructor" $ do
+            -- data Request a = Write Int (NonEmptyArray a)
+            let typeVar = TypeInfo "" "" "a" []
+                wrappedA = TypeInfo "" "" "NonEmptyArray" [typeVar]
+                requestType = TypeInfo "" "" "Request" [typeVar]
+                dc = DataConstructor "Write" (Normal $ psInt NE.:| [wrappedA])
+                st = SumType requestType [dc] [GenericShow]
+                rendered = T.unlines $ map renderText $ instances st
+            rendered `shouldSatisfy` T.isInfixOf "(Show a) =>"
+
+        it "GenericShow omits constraint for phantom type variable" $ do
+            -- data Phantom a = Phantom Int
+            let typeVar = TypeInfo "" "" "a" []
+                phantomType = TypeInfo "" "" "Phantom" [typeVar]
+                dc = DataConstructor "Phantom" (Normal $ NE.singleton psInt)
+                st = SumType phantomType [dc] [GenericShow]
+                rendered = T.unlines $ map renderText $ instances st
+            rendered `shouldSatisfy` (not . T.isInfixOf "(Show a) =>")
+
+        it "GenericShow adds constraint for directly used type variable" $ do
+            -- data Box a = Box a
+            let typeVar = TypeInfo "" "" "a" []
+                boxType = TypeInfo "" "" "Box" [typeVar]
+                dc = DataConstructor "Box" (Normal $ NE.singleton typeVar)
+                st = SumType boxType [dc] [GenericShow]
+                rendered = T.unlines $ map renderText $ instances st
+            rendered `shouldSatisfy` T.isInfixOf "(Show a) =>"
+
+        it "GenericShow adds constraint for type variable in record field" $ do
+            -- data Foo a = Foo { items :: Array a }
+            let typeVar = TypeInfo "" "" "a" []
+                arrayA = TypeInfo "" "" "Array" [typeVar]
+                fooType = TypeInfo "" "" "Foo" [typeVar]
+                dc = DataConstructor "Foo" (Record $ NE.singleton $ RecordEntry "items" arrayA)
+                st = SumType fooType [dc] [GenericShow]
+                rendered = T.unlines $ map renderText $ instances st
+            rendered `shouldSatisfy` T.isInfixOf "(Show a) =>"
+
+        it "GenericShow adds constraint for deeply nested type variable" $ do
+            -- data Foo a = Foo (Maybe (Array a))
+            let typeVar = TypeInfo "" "" "a" []
+                arrayA = TypeInfo "" "" "Array" [typeVar]
+                maybeArrayA = TypeInfo "" "" "Maybe" [arrayA]
+                fooType = TypeInfo "" "" "Foo" [typeVar]
+                dc = DataConstructor "Foo" (Normal $ NE.singleton maybeArrayA)
+                st = SumType fooType [dc] [GenericShow]
+                rendered = T.unlines $ map renderText $ instances st
+            rendered `shouldSatisfy` T.isInfixOf "(Show a) =>"
+
+        it "GenericShow handles multiple type params, one nested one phantom" $ do
+            -- data Foo a b = Foo (Array a)
+            let a = TypeInfo "" "" "a" []
+                b = TypeInfo "" "" "b" []
+                arrayA = TypeInfo "" "" "Array" [a]
+                fooType = TypeInfo "" "" "Foo" [a, b]
+                dc = DataConstructor "Foo" (Normal $ NE.singleton arrayA)
+                st = SumType fooType [dc] [GenericShow]
+                rendered = T.unlines $ map renderText $ instances st
+            rendered `shouldSatisfy` T.isInfixOf "(Show a) =>"
+            rendered `shouldSatisfy` (not . T.isInfixOf "(Show b)")
+
+        it "GenericShow finds variable used in only one of multiple constructors" $ do
+            -- data Foo a = Empty | Full (Array a)
+            let typeVar = TypeInfo "" "" "a" []
+                arrayA = TypeInfo "" "" "Array" [typeVar]
+                fooType = TypeInfo "" "" "Foo" [typeVar]
+                dc1 = DataConstructor "Empty" Nullary
+                dc2 = DataConstructor "Full" (Normal $ NE.singleton arrayA)
+                st = SumType fooType [dc1, dc2] [GenericShow]
+                rendered = T.unlines $ map renderText $ instances st
+            rendered `shouldSatisfy` T.isInfixOf "(Show a) =>"
+
+        it "GenericShow with no type parameters produces no constraints" $ do
+            -- data Color = Red | Blue
+            let colorType = TypeInfo "" "" "Color" []
+                dc1 = DataConstructor "Red" Nullary
+                dc2 = DataConstructor "Blue" Nullary
+                st = SumType colorType [dc1, dc2] [GenericShow]
+                rendered = T.unlines $ map renderText $ instances st
+            rendered `shouldSatisfy` (not . T.isInfixOf "=>")
 
   where
     mkTestModule :: T.Text -> [ImportLine] -> [T.Text] -> Module 'PureScript
