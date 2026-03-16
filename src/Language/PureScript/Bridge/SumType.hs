@@ -429,7 +429,7 @@ instanceToImportLines DecodeJson =
           $ Set.fromList ["defaultOptions"]
         , ImportLine "Data.Argonaut.Decode.Class" (Just "Argonaut") mempty
         , ImportLine "Data.Argonaut.Decode.Class" Nothing
-          $ Set.fromList ["class DecodeJson", "class DecodeJsonField", "decodeJson"]
+          $ Set.fromList ["class DecodeJson", "decodeJson"]
         , ImportLine "Control.Lazy" Nothing $ Set.fromList ["defer"]
         ]
 {-|
@@ -463,6 +463,8 @@ instanceToImportLines DecodeJsonHelper =
         , ImportLine "Data.Tuple.Nested" Nothing $ Set.singleton "(/\\)"
         , ImportLine "Data.Argonaut.Decode.Aeson" (Just "D") mempty
         , ImportLine "Data.Map" (Just "Map") mempty
+        , ImportLine "Data.Argonaut.Decode.Class" Nothing
+          $ Set.singleton "class DecodeJsonField"
         ]
         <> instanceToImportLines DecodeJson
 instanceToImportLines (ForeignObject _ _) =

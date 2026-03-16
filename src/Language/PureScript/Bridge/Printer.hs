@@ -344,7 +344,7 @@ instances st@(SumType t dcs is) = nub $ go <$> is
     go DecodeJson =
         mkInstance
             (mkType "DecodeJson" [t])
-            decodeJsonConstraints
+            (constrainWith "DecodeJson")
             ["decodeJson = defer \\_ -> genericDecodeAeson Argonaut.defaultOptions"]
     {-|
       This relies on unpublished PureScript library `purescript-bridge-json-helpers`:
