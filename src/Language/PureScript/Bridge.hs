@@ -149,6 +149,7 @@ import           Language.PureScript.Bridge.SumType as Bridge (CustomInstance (.
                                                                customHead,
                                                                customImplementation,
                                                                equal, equal1,
+                                                               excludeFields,
                                                                foldable,
                                                                functor,
                                                                genericShow,

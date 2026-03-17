@@ -18,6 +18,7 @@ import           Language.PureScript.Bridge.SumType (DataConstructor (..),
                                                      SumType (..),
                                                      constructorToTypes,
                                                      equal, equal1,
+                                                     excludeFields,
                                                      foldable, functor,
                                                      genericShow, traversable,
                                                      getUsedTypes,
@@ -288,6 +289,48 @@ spec = do
                 b = Normal $ NE.singleton (mkTypeInfo @Bool)
                 result = a <> b
             isNormal result `shouldBe` True
+
+    describe "excludeFields" $ do
+        it "removes named fields from record constructor" $ do
+            let entries = RecordEntry "name" (mkTypeInfo @String)
+                    NE.:| [ RecordEntry "created" (mkTypeInfo @Int)
+                          , RecordEntry "updated" (mkTypeInfo @Int)
+                          ]
+                dc = DataConstructor "Foo" (Record entries) :: DataConstructor 'Haskell
+                st = SumType (mkTypeInfo @Int) [dc] [] :: SumType 'Haskell
+                SumType _ [DataConstructor _ args] _ = excludeFields ["created", "updated"] st
+                Record result = args
+            NE.length result `shouldBe` 1
+            _recLabel (NE.head result) `shouldBe` "name"
+
+        it "leaves non-record constructors unchanged" $ do
+            let dc = DataConstructor "Bar" (Normal $ NE.singleton $ mkTypeInfo @Int) :: DataConstructor 'Haskell
+                st = SumType (mkTypeInfo @Int) [dc] [] :: SumType 'Haskell
+                SumType _ [DataConstructor _ args] _ = excludeFields ["whatever"] st
+            isNormal args `shouldBe` True
+
+        it "turns constructor nullary when all fields are excluded" $ do
+            let entries = NE.singleton (RecordEntry "only" $ mkTypeInfo @Int)
+                dc = DataConstructor "Foo" (Record entries) :: DataConstructor 'Haskell
+                st = SumType (mkTypeInfo @Int) [dc] [] :: SumType 'Haskell
+                SumType _ [DataConstructor _ args] _ = excludeFields ["only"] st
+            args `shouldBe` Nullary
+
+        it "does nothing when no fields match" $ do
+            let entries = RecordEntry "name" (mkTypeInfo @String)
+                    NE.:| [RecordEntry "age" (mkTypeInfo @Int)]
+                dc = DataConstructor "Foo" (Record entries) :: DataConstructor 'Haskell
+                st = SumType (mkTypeInfo @Int) [dc] [] :: SumType 'Haskell
+                SumType _ [DataConstructor _ args] _ = excludeFields ["nonexistent"] st
+                Record result = args
+            NE.length result `shouldBe` 2
+
+        it "preserves instances" $ do
+            let entries = NE.singleton (RecordEntry "name" $ mkTypeInfo @String)
+                dc = DataConstructor "Foo" (Record entries) :: DataConstructor 'Haskell
+                st = SumType (mkTypeInfo @Int) [dc] [GenericShow, Eq] :: SumType 'Haskell
+                SumType _ _ is = excludeFields ["whatever"] st
+            length is `shouldBe` 2
 
 isNormal :: DataConstructorArgs lang -> Bool
 isNormal (Normal _) = True

@@ -24,6 +24,7 @@ module Language.PureScript.Bridge.SumType
     , functor
     , foldable
     , traversable
+    , excludeFields
     , DataConstructor (..)
     , GDataConstructor
     , RecordEntry (..)
@@ -256,6 +257,26 @@ lenses (SumType ti dc is) = SumType ti dc . nub $ Lenses : is
 
 prisms :: SumType t -> SumType t
 prisms (SumType ti dc is) = SumType ti dc . nub $ Prisms : is
+
+-- | Remove fields by name from record constructors. Non-record constructors
+-- are left unchanged. If all fields are excluded, the constructor becomes
+-- nullary.
+--
+-- This is useful for server-only fields (e.g., @created@, @updated@) that
+-- the client doesn't need. PureScript's JSON decoder silently ignores
+-- extra fields in the wire format, so excluding them is safe.
+--
+-- @
+-- excludeFields [\"created\", \"updated\"] $ mkSumType \@Property
+-- @
+excludeFields :: [Text] -> SumType t -> SumType t
+excludeFields names (SumType ti dcs is) = SumType ti (map go dcs) is
+  where
+    go (DataConstructor n (Record entries)) =
+      case NE.filter (\e -> _recLabel e `notElem` names) entries of
+        []     -> DataConstructor n Nullary
+        (x:xs) -> DataConstructor n (Record (x NE.:| xs))
+    go dc = dc
 
 data DataConstructor (lang :: Language) = DataConstructor
   { _sigConstructor :: !Text
