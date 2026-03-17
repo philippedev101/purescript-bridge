@@ -293,6 +293,26 @@ spec = do
                 rendered = T.unlines $ map renderText $ instances st
             rendered `shouldSatisfy` (not . T.isInfixOf "=>")
 
+        it "DecodeJson does not generate DecodeJsonField constraint" $ do
+            -- data Foo a = Foo a
+            let typeVar = TypeInfo "" "" "a" []
+                fooType = TypeInfo "" "" "Foo" [typeVar]
+                dc = DataConstructor "Foo" (Normal $ NE.singleton typeVar)
+                st = SumType fooType [dc] [DecodeJson]
+                rendered = T.unlines $ map renderText $ instances st
+            rendered `shouldSatisfy` T.isInfixOf "DecodeJson a"
+            rendered `shouldSatisfy` (not . T.isInfixOf "DecodeJsonField")
+
+        it "DecodeJsonHelper generates both DecodeJson and DecodeJsonField constraints" $ do
+            -- data Foo a = Foo a
+            let typeVar = TypeInfo "" "" "a" []
+                fooType = TypeInfo "" "" "Foo" [typeVar]
+                dc = DataConstructor "Foo" (Normal $ NE.singleton typeVar)
+                st = SumType fooType [dc] [DecodeJsonHelper]
+                rendered = T.unlines $ map renderText $ instances st
+            rendered `shouldSatisfy` T.isInfixOf "DecodeJson a"
+            rendered `shouldSatisfy` T.isInfixOf "DecodeJsonField a"
+
   where
     mkTestModule :: T.Text -> [ImportLine] -> [T.Text] -> Module 'PureScript
     mkTestModule name imports typeNames = PSModule
